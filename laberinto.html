@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Auto Autónomo - Laberinto Educativo</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f0f0f0; }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(6, 70px);
+      gap: 4px;
+      margin: 20px auto;
+      width: fit-content;
+    }
+    .cell {
+      width: 70px; height: 70px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      border-radius: 8px;
+      transition: background 0.3s;
+      border: 1px solid #ccc;
+    }
+    .safe { background: #fff; }
+    .car { background: #87cefa; }
+    .obstacle { background: #ff4d4d; cursor: pointer; }
+    .goal { background: #90ee90; }
+    button {
+      margin: 10px 5px;
+      padding: 10px 20px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    #message { font-size: 20px; margin-top: 15px; }
+  </style>
+</head>
+<body>
+
+<h2>🚗 Laberinto del Auto Autónomo</h2>
+<div id="board"></div>
+
+<div>
+  <button onclick="move('up')">⬆️</button><br>
+  <button onclick="move('left')">⬅️</button>
+  <button onclick="move('down')">⬇️</button>
+  <button onclick="move('right')">➡️</button>
+</div>
+
+<p id="message"></p>
+
+<!-- Sonidos -->
+<audio id="moveSound" src="move.mp3"></audio>
+<audio id="errorSound" src="error.mp3"></audio>
+<audio id="winSound" src="win.mp3"></audio>
+
+<script>
+  const board = document.getElementById('board');
+  const size = 6;
+  const map = [
+    ['safe', 'safe', 'safe', 'safe', 'safe', 'goal'],
+    ['obstacle', 'obstacle', 'safe', 'obstacle', 'obstacle', 'obstacle'],
+    ['car', 'safe', 'safe', 'safe', 'safe', 'safe'],
+    ['obstacle', 'obstacle', 'obstacle', 'obstacle', 'safe', 'obstacle'],
+    ['safe', 'safe', 'safe', 'safe', 'safe', 'safe'],
+    ['obstacle', 'safe', 'obstacle', 'safe', 'obstacle', 'safe']
+  ];
+
+  const questions = {
+    "1,0": {
+      q: "¿Qué es un LIDAR en un auto autónomo?",
+      options: ["Un sensor de luz y distancia", "Un tipo de motor", "Un sistema de frenos"],
+      answer: 0
+    },
+    "1,1": {
+      q: "¿Qué hace la inteligencia artificial en un auto autónomo?",
+      options: ["Controla el aire acondicionado", "Toma decisiones de conducción", "Solo enciende las luces"],
+      answer: 1
+    },
+    "0,3": {
+      q: "¿Qué significa 'autonomía nivel 5'?",
+      options: ["Conducción manual", "Conducción asistida", "Conducción totalmente autónoma"],
+      answer: 2
+    }
+  };
+
+  let carPos = { x: 0, y: 2 };
+
+  const moveSound = document.getElementById('moveSound');
+  const errorSound = document.getElementById('errorSound');
+  const winSound = document.getElementById('winSound');
+
+  function drawBoard() {
+    board.innerHTML = '';
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell ' + map[y][x];
+
+        let icon = '';
+        if (map[y][x] === 'car') icon = '🚗';
+        if (map[y][x] === 'goal') icon = '🏁';
+        if (map[y][x] === 'obstacle') icon = '❓';
+
+        cell.innerHTML = `<div style="font-size:12px;">(${x},${y})</div><div>${icon}</div>`;
+
+        if (map[y][x] === 'obstacle') {
+          cell.onclick = () => askQuestion(x, y);
+        }
+
+        board.appendChild(cell);
+      }
+    }
+  }
+
+  function askQuestion(x, y) {
+    const key = `${x},${y}`;
+    const q = questions[key];
+    if (!q) {
+      alert("Este obstáculo no tiene pregunta.");
+      return;
+    }
+
+    const userAnswer = prompt(`${q.q}
+${q.options.map((opt, i) => `${i + 1}. ${opt}`).join('\n')}`);
+    if (parseInt(userAnswer) - 1 === q.answer) {
+      alert("✅ ¡Correcto! Puedes pasar.");
+      map[y][x] = 'safe';
+      drawBoard();
+    } else {
+      alert("❌ Incorrecto. Intenta otra ruta.");
+    }
+  }
+
+  function move(direction) {
+    const { x, y } = carPos;
+    let newX = x, newY = y;
+
+    if (direction === 'up') newY--;
+    if (direction === 'down') newY++;
+    if (direction === 'left') newX--;
+    if (direction === 'right') newX++;
+
+    if (newX < 0 || newX >= size || newY < 0 || newY >= size) return;
+
+    const nextCell = map[newY][newX];
+    if (nextCell === 'obstacle') {
+      errorSound.play();
+      document.getElementById('message').textContent = '🚫 Obstáculo. Responde la pregunta para avanzar.';
+      return;
+    }
+
+    moveSound.play();
+    map[y][x] = 'safe';
+    map[newY][newX] = 'car';
+    carPos = { x: newX, y: newY };
+    drawBoard();
+
+    if (nextCell === 'goal') {
+      winSound.play();
+      document.getElementById('message').innerHTML = '🎉 ¡Ruta completada! Tu código es: <strong>89739</strong>';
+    }
+  }
+
+  drawBoard();
+</script>
+
+</body>
+</html>
